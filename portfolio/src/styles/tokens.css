@@ -1,0 +1,25 @@
+:root {
+  --color-ink: #0B0D0C;
+  --color-paper: #EDF2ED;
+  --color-signal: #38F2C4;
+  --color-signal-dark: #109F82;
+  --color-muted: #7F8883;
+  --bg: var(--color-ink);
+  --fg: var(--color-paper);
+  --accent: var(--color-signal);
+  --line: color-mix(in srgb, var(--color-paper) 16%, transparent);
+  --surface: color-mix(in srgb, var(--color-paper) 4%, var(--color-ink));
+  --secondary: color-mix(in srgb, var(--color-paper) 65%, var(--color-ink));
+  --font-sans: 'Arial', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Consolas', 'SFMono-Regular', monospace;
+  color-scheme: dark;
+}
+:root[data-theme='light'] {
+  --bg: var(--color-paper);
+  --fg: var(--color-ink);
+  --accent: color-mix(in srgb, var(--color-signal-dark) 70%, var(--color-ink));
+  --line: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  --surface: color-mix(in srgb, var(--color-ink) 4%, var(--color-paper));
+  --secondary: color-mix(in srgb, var(--color-ink) 65%, var(--color-paper));
+  color-scheme: light;
+}

@@ -1,0 +1,87 @@
+/* Shared viewport frame, using the Home scene's margins at each breakpoint. */
+:root {
+  --scene-top: 38px;
+  --scene-bottom: 28px;
+  --scene-left: 7.4%;
+  --scene-right: 148px;
+  --scene-footer-height: 64px;
+}
+.stage :is(.hero, .projects-shell, .journey-shell, .skills-shell, .contact-shell) {
+  display: grid;
+  grid-template-rows: 16px minmax(0, 1fr) var(--scene-footer-height);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-width: 1480px;
+  margin: auto;
+  padding: var(--scene-top) var(--scene-right) var(--scene-bottom) var(--scene-left);
+  overflow: hidden;
+}
+.stage :is(.hero-panel, .project-view, .journey-panel, .skills-panel, .contact-panel) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.stage :is(.hero-top, .projects-eyebrow, .view-topline, .journey-topline, .skills-topline, .contact-topline) {
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  align-items: center;
+  line-height: 16px;
+}
+.scene-body, .stage .hero-grid {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  padding: 30px 6px 22px;
+  scroll-padding: 20px;
+}
+.stage :is(.projects-heading, .journey-heading, .skills-heading, .archive-heading) { margin-top: 0; }
+.stage :is(.hero-bottom, .projects-footer, .journey-bottom, .skills-bottom, .contact-footer, .archive-note) {
+  align-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 20px;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line);
+}
+.stage :is(.projects-footer, .journey-bottom, .skills-bottom, .contact-footer) button { min-height: 28px; padding: 3px 0; }
+.stage .journey-instruction { margin: 0; font-size: 8px; }
+.stage .contact-body { padding-top: clamp(48px, 8vh, 90px); }
+.stage .contact-layout { min-height: 100%; margin-top: 0; }
+.stage .contact-welcome { padding-top: 0; }
+.stage .contact-welcome .contact-heading { margin: 0 0 26px; }
+/* Internal gallery navigation belongs to the content, not to the shared viewport label. */
+.stage .view-topline .back-button { padding: 0; min-height: 16px; border: 0; }
+.stage .intro-eyebrow { top: var(--scene-top); left: calc(max(0px, (100vw - 1480px) / 2) + var(--scene-left)); }
+.stage .intro-footer { left: calc(max(0px, (100vw - 1480px) / 2) + var(--scene-left)); right: calc(max(0px, (100vw - 1480px) / 2) + var(--scene-right)); bottom: var(--scene-bottom); }
+@media (min-width: 1600px) {
+  :root { --scene-left: 90px; --scene-right: 100px; }
+}
+@media (max-width: 1100px) {
+  :root { --scene-left: 5%; --scene-right: 110px; }
+}
+@media (max-width: 760px) {
+  :root { --scene-top: 28px; --scene-bottom: 105px; --scene-left: 26px; --scene-right: 26px; --scene-footer-height: 110px; }
+  .scene-body, .stage .hero-grid { padding: 28px 4px 22px; }
+  .stage .contact-body { padding-top: 28px; }
+  .stage .contact-welcome .contact-heading { margin-bottom: 6px; }
+  .stage :is(.hero-bottom, .projects-footer, .journey-bottom, .skills-bottom, .contact-footer, .archive-note) { font-size: 8px; flex-direction: row; }
+  .stage :is(.projects-footer, .journey-bottom, .skills-bottom, .contact-footer) button { min-height: 44px; }
+  .stage .contact-footer > span { width: auto; }
+  .stage .contact-footer button:last-child { margin-left: 0; }
+  .stage .journey-legend { gap: 7px; }
+  .stage .journey-legend li { font-size: 8px; }
+  .stage .journey-instruction { display: none; }
+}
+@media (max-width: 370px) {
+  :root { --scene-left: 20px; --scene-right: 20px; }
+}

@@ -1,0 +1,35 @@
+/* One viewport background below the scene surfaces, never above interactive content. */
+.stage { background: var(--bg); }
+.morphing-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  --background-stroke: color-mix(in srgb, var(--accent) 15%, transparent);
+  --background-halo-opacity: .065;
+  --background-surface-opacity: .025;
+}
+.background-main, .background-echo { stroke: var(--background-stroke); stroke-width: 1px; }
+.background-main use, .background-echo use { vector-effect: non-scaling-stroke; }
+.background-echo { opacity: .55; }
+.background-halo-center { stop-color: var(--accent); stop-opacity: var(--background-halo-opacity); }
+.background-halo-edge { stop-color: var(--accent); stop-opacity: 0; }
+.background-surface-start { stop-color: var(--accent); stop-opacity: var(--background-surface-opacity); }
+.background-surface-end { stop-color: var(--accent); stop-opacity: 0; }
+/* Only viewport surfaces become transparent. Cards, inputs, popovers and overlays retain their surfaces. */
+.stage .projects-panel, .stage .project-view,
+.stage .journey-panel, .stage .skills-panel, .stage .contact-panel { background: transparent; }
+:root[data-theme='light'] .morphing-background {
+  --background-stroke: color-mix(in srgb, var(--accent) 12%, transparent);
+  --background-halo-opacity: .035;
+  --background-surface-opacity: .018;
+}
+@media (max-width: 760px) {
+  .morphing-background { --background-halo-opacity: .04; }
+  .background-echo { opacity: .3; }
+  .background-halo { opacity: .65; }
+}
