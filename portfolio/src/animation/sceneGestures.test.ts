@@ -125,3 +125,18 @@ it('lets all nested scroll containers reach their edge before changing scenes', 
   legend.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true, cancelable: true }))
   expect(navigate).toHaveBeenCalledTimes(1)
 })
+
+it('never claims an event originating inside a data-scroll-region, even at its limits', () => {
+  const { scroller, navigate } = setup()
+  const region = document.createElement('aside')
+  region.dataset.scrollRegion = ''
+  scroller.appendChild(region)
+  Object.defineProperty(region, 'scrollHeight', { configurable: true, value: 800 })
+  Object.defineProperty(region, 'clientHeight', { configurable: true, value: 400 })
+  region.scrollTop = 400
+  region.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))
+  expect(navigate).not.toHaveBeenCalled()
+  region.scrollTop = 0
+  region.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true, cancelable: true }))
+  expect(navigate).not.toHaveBeenCalled()
+})

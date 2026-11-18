@@ -17,8 +17,8 @@ import { JourneyScene } from './JourneyScene'
 import type { ProjectsSceneHandle } from './ProjectsScene'
 import { SkillsScene } from './SkillsScene'
 import { projectById } from '../data/projects'
+import { ProjectOverlay } from '../components/projects/ProjectOverlay'
 import { ContactScene } from './ContactScene'
-import { celebrateContact } from '../animation/contactAnimations'
 import { MorphingBackground } from '../components/background/MorphingBackground'
 import type { BackgroundController } from '../components/background/backgroundAnimations'
 
@@ -37,7 +37,6 @@ export function SceneManager() {
   const skillsPanel = useRef<HTMLElement>(null)
   const contactPanel = useRef<HTMLElement>(null)
   const contactAnchor = useRef<HTMLDivElement>(null)
-  const contactReaction = useRef<(() => void) | null>(null)
   const pendingSkillProject = useRef<string | null>(null)
   const projectsApi = useRef<ProjectsSceneHandle>(null)
   const mascot = useRef<MascotController>(null)
@@ -51,6 +50,7 @@ export function SceneManager() {
   const projectsBusy = useRef(false)
   const [replay, setReplay] = useState(0)
   const [notice, setNotice] = useState('')
+  const [externalProject, setExternalProject] = useState<string | null>(null)
   const preferences = usePreferences()
   const reducedRef = useRef(preferences.reduced)
   const viewChanged = useCallback((main: boolean) => { projectsMain.current = main }, [])
@@ -60,16 +60,15 @@ export function SceneManager() {
     if (activeRef.current === 'intro') animation.current?.finish()
     return sceneMotion.current?.go(scene) ?? false
   }, [])
-  const confirmContact = useCallback(() => {
-    if (activeRef.current !== 'contact' || sceneMotion.current?.busy || !mascot.current) return
-    contactReaction.current?.()
-    contactReaction.current = celebrateContact(mascot.current, reducedRef.current)
-  }, [])
   const openSkillProject = useCallback((id: string) => {
     if (!projectById.has(id) || projectsBusy.current || sceneMotion.current?.busy) return
     pendingSkillProject.current = id
     if (!goTo('projects')) pendingSkillProject.current = null
   }, [goTo])
+  const openProjectFromScene = useCallback((id: string) => {
+    if (!projectById.has(id) || projectsBusy.current || sceneMotion.current?.busy) return
+    setExternalProject(id)
+  }, [])
   const skip = useCallback(() => {
     if (activeRef.current !== 'intro' && activeRef.current !== 'hero') { goTo('hero'); return }
     animation.current?.finish()
@@ -99,7 +98,6 @@ export function SceneManager() {
           stage: stage.current!, heroPanel: hero.current!, heroScroll: hero.current!.querySelector<HTMLElement>('.hero-grid')!, projectsPanel: projectsPanel.current!, journeyPanel: journeyPanel.current!, skillsPanel: skillsPanel.current!, contactPanel: contactPanel.current!, contactAnchor: contactAnchor.current!, frame: frame.current!, home: homeSlot.current!,
           mascotElement: stage.current!.querySelector<HTMLElement>('.mascot')!, mascot: mascot.current!, reduced: () => reducedRef.current,
           onStart(scene) {
-            contactReaction.current?.(); contactReaction.current = null
             if (activeRef.current === 'journey' && scene === 'projects') projectsApi.current?.showMain()
             setBloubInNav(scene !== 'contact' && !(scene === 'hero' && activeRef.current === 'contact'))
             activeRef.current = scene; setActive(scene); setTransitioning(true)
@@ -138,6 +136,13 @@ export function SceneManager() {
     const heroElement = heroPanel.current!
     const contactElement = contactPanel.current!
     const trackContact = () => sceneMotion.current?.updateContactAnchor()
+    // Copy fallback or font changes can resize the centered composition without a viewport resize.
+    const contactResize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(trackContact)
+    const contactContent = contactElement.querySelector('.contact-content')
+    if (contactContent) {
+      contactResize?.observe(contactContent)
+      for (const child of contactContent.children) contactResize?.observe(child)
+    }
     heroElement.addEventListener('scroll', trackPortrait, { passive: true, capture: true })
     contactElement.addEventListener('scroll', trackContact, { passive: true, capture: true })
     window.addEventListener('resize', resize)
@@ -148,7 +153,7 @@ export function SceneManager() {
       cancelAnimationFrame(resizeFrame)
       heroElement.removeEventListener('scroll', trackPortrait, true)
       contactElement.removeEventListener('scroll', trackContact, true)
-      contactReaction.current?.(); contactReaction.current = null
+      contactResize?.disconnect()
       window.removeEventListener('resize', resize)
       window.visualViewport?.removeEventListener('resize', resize)
       sceneMotion.current?.dispose()
@@ -163,7 +168,6 @@ export function SceneManager() {
   useEffect(() => {
     reducedRef.current = preferences.reduced
     animation.current?.setReduced(preferences.reduced)
-    if (preferences.reduced) { contactReaction.current?.(); contactReaction.current = null }
     if (preferences.reduced && sceneMotion.current?.busy) sceneMotion.current.settle()
   }, [preferences.reduced])
 
@@ -186,12 +190,15 @@ export function SceneManager() {
 
   const navigate = (scene: Scene) => {
     if (sceneMotion.current?.busy || projectsBusy.current) return
+    setExternalProject(null)
     setNotice('')
     if (scene !== 'intro' && scene !== 'hero') goTo(scene)
     else if (scene === 'hero') skip()
     else if (preferences.reduced) setNotice('Les animations sont réduites. Réactivez-les pour rejouer l’introduction.')
     else { activeRef.current = 'intro'; setBloubInNav(false); setActive('intro'); setReplay(v => v + 1) }
   }
+
+  const externalProjectData = externalProject ? projectById.get(externalProject) : undefined
 
   return <>
     <a className="skip-link" href="#hero-title" onClick={skip}>Aller au contenu</a>
@@ -203,9 +210,10 @@ export function SceneManager() {
         <Hero heroRef={hero} frameRef={frame} active={active === 'hero' && !transitioning} announce={setNotice} showProjects={() => goTo('projects')} showContact={() => goTo('contact')} />
       </div>
       <ProjectsScene sceneRef={projectsPanel} apiRef={projectsApi} active={active === 'projects' && !transitioning} reduced={preferences.reduced} onViewChange={viewChanged} onBusyChange={galleryBusy} home={() => goTo('hero')} journey={() => goTo('journey')} />
-      <JourneyScene sceneRef={journeyPanel} active={active === 'journey' && !transitioning} visible={active === 'journey'} reduced={preferences.reduced} projects={() => goTo('projects')} />
-      <SkillsScene sceneRef={skillsPanel} active={active === 'skills' && !transitioning} visible={active === 'skills'} reduced={preferences.reduced} journey={() => goTo('journey')} openProject={openSkillProject} />
-      <ContactScene sceneRef={contactPanel} anchorRef={contactAnchor} active={active === 'contact' && !transitioning} visible={active === 'contact'} reduced={preferences.reduced} home={() => goTo('hero')} skills={() => goTo('skills')} onConfirmed={confirmContact} />
+      <JourneyScene sceneRef={journeyPanel} active={active === 'journey' && !transitioning} visible={active === 'journey'} reduced={preferences.reduced} projects={() => goTo('projects')} skills={() => goTo('skills')} openProject={openProjectFromScene} />
+      <SkillsScene sceneRef={skillsPanel} active={active === 'skills' && !transitioning} visible={active === 'skills'} reduced={preferences.reduced} journey={() => goTo('journey')} contact={() => goTo('contact')} openProject={openSkillProject} />
+      <ContactScene sceneRef={contactPanel} anchorRef={contactAnchor} active={active === 'contact' && !transitioning} visible={active === 'contact'} reduced={preferences.reduced} home={() => goTo('hero')} skills={() => goTo('skills')} />
+      {externalProjectData && <ProjectOverlay project={externalProjectData} source={null} reduced={preferences.reduced} onClose={() => setExternalProject(null)} />}
     </main>
     <FloatingNavigation navRef={nav} homeRef={homeSlot} active={active} busy={transitioning} bloubInNav={bloubInNav} {...preferences} navigate={navigate} />
     <div className={`notice ${notice ? 'notice-visible' : ''}`} role="status" aria-live="polite">{notice && <><span>{notice}</span><button aria-label="Fermer le message" onClick={() => setNotice('')}><X size={16} /></button></>}</div>

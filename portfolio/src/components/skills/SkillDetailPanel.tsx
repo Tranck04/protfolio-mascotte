@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import gsap from 'gsap'
-import { resolveSkillProjects, skillLevels } from '../../data/skills'
+import { skillLevels, resolveSkillReferenceTitle } from '../../data/skills'
 import type { SkillDomain } from '../../data/skills'
+import { projectById } from '../../data/projects'
 
 export function SkillDetailPanel({ domain, reduced, openProject }: { domain: SkillDomain; reduced: boolean; openProject: (id: string) => void }) {
   const content = useRef<HTMLDivElement>(null)
@@ -13,15 +14,22 @@ export function SkillDetailPanel({ domain, reduced, openProject }: { domain: Ski
     })
     return () => ctx.revert()
   }, [domain.id, reduced])
-  const projects = resolveSkillProjects(domain)
   const level = skillLevels[domain.level]
-  return <aside className="skill-details" id="skill-detail-panel" data-scene-scroll="" role="region" aria-labelledby="skill-domain-title">
+  const groups = (domain.skillGroups ?? []).filter(group => group.items.length > 0)
+  return <aside className="skill-details" id="skill-detail-panel" data-scroll-region="" role="region" aria-labelledby="skill-domain-title">
     <div className="skill-detail-content" ref={content}>
-      <div className="skill-detail-heading"><p className="skill-detail-eyebrow">LE DOMAINE EN CLAIR</p><h3 id="skill-domain-title">{domain.name}<span>.</span></h3><p className="skill-level"><span>{String(domain.level).padStart(2, '0')} / 05</span><strong>{level.label}</strong></p></div>
+      <div className="skill-detail-heading"><p className="skill-detail-eyebrow">LE DOMAINE EN CLAIR</p><h3 id="skill-domain-title">{domain.title}<span>.</span></h3><p className="skill-level"><span>{String(domain.level).padStart(2, '0')} / 05</span><strong>{level.label}</strong></p>{domain.tagline && <p className="skill-tagline">{domain.tagline}</p>}</div>
       <p className="skill-description">{domain.description}</p>
-      <div className="skill-technologies"><h4>Technologies & méthodes</h4><ul className="skill-tags" aria-label={`Technologies et méthodes — ${domain.name}`}>{domain.technologies.map(technology => <li key={technology}>{technology}</li>)}</ul></div>
-      {domain.experience && <p className="skill-experience">Pratique : {domain.experience}</p>}
-      <div className="skill-projects"><h4>Projets associés</h4>{projects.length ? <ul>{projects.map(project => <li key={project.id}><button type="button" onClick={() => openProject(project.id)} aria-label={`Consulter ${project.title} depuis les compétences`}><span>{project.title}</span>{project.status && <small>{project.status}</small>}<ArrowUpRight size={16} /></button></li>)}</ul> : <p className="skill-no-project">Aucune association documentée dans le catalogue actuel.</p>}</div>
+      <div className="skill-technologies"><h4>Compétences & technologies</h4>{groups.length > 0 ? groups.map(group => <div className="skill-group" key={group.label}><h5>{group.label}</h5><ul className="skill-tags" aria-label={group.label}>{group.items.map(item => <li key={item}>{item}</li>)}</ul></div>) : <ul className="skill-tags" aria-label={`Compétences — ${domain.title}`}>{domain.skills.map(skill => <li key={skill}>{skill}</li>)}</ul>}</div>
+      <div className="skill-projects"><h4>Réalisations associées</h4>{domain.projectReferences.length > 0 ? <ul>{domain.projectReferences.map(reference => {
+        const projectId = reference.projectId
+        const project = projectId ? projectById.get(projectId) : undefined
+        const title = resolveSkillReferenceTitle(reference)
+        const key = projectId ?? reference.title ?? reference.description
+        const body = <><span className="skill-reference-title">{title}</span><span className="skill-reference-desc">{reference.description}</span>{project && <ArrowUpRight size={16} aria-hidden="true" />}</>
+        return <li key={key}>{project ? <button type="button" className="skill-reference" onClick={() => openProject(projectId!)} aria-label={`Consulter ${title} depuis les compétences`}>{body}</button> : <span className="skill-reference skill-reference-static">{body}</span>}</li>
+      })}</ul> : <p className="skill-no-project">Aucune association documentée dans le catalogue actuel.</p>}</div>
+      {domain.growthAreas.length > 0 && <div className="skill-growth"><h4>Axes de progression</h4><ul className="skill-growth-list">{domain.growthAreas.map(area => <li key={area}>{area}</li>)}</ul></div>}
     </div>
   </aside>
 }

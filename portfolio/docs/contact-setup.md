@@ -1,75 +1,15 @@
-# Activer l’envoi de messages
+# Contact — Sprint 16
 
-## État actuel
+La scène est une conclusion centrée : « Me contacter. », sous-titre, repère de la mascotte persistante, bouton email, copie de l’adresse et liens GitHub / LinkedIn. Le marqueur, la signature supérieure et le footer commun sont conservés. Le formulaire, la lettre, la bulle, le transport HTTP et les réactions d’envoi ont été supprimés après vérification de leurs usages.
 
-Le portfolio est une application Vite statique. Le projet ne contient ni backend, ni fonction serverless d’envoi, ni compte de fournisseur d’email. La configuration d’hébergement existante publie seulement `dist/` : elle ne traite pas les requêtes POST.
+`ContactActions.tsx` utilise l’adresse publique déjà configurée dans `src/config/contact.ts`, également utilisée par `contactMailto`. Le bouton « M’écrire un email » ouvre la messagerie ; il n’effectue aucun envoi automatique et ne prétend jamais qu’un message est reçu. Les coordonnées restent modifiables via les variables publiques de `.env.example`. Aucun backend, secret ou fournisseur d’email n’est nécessaire.
 
-L’interface Contact et sa validation sont disponibles. L’envoi direct est désactivé tant que `VITE_CONTACT_ENDPOINT` est vide. Le lien email ouvre la messagerie du visiteur vers **tfmukendi@gmail.com** ; il ne constitue pas une confirmation d’envoi et ne déclenche aucune animation de succès.
+`useCopyEmail.ts` appelle l’API Clipboard et confirme « Adresse copiée » uniquement après résolution positive. Les doubles demandes simultanées sont empêchées. Une absence d’API ou une erreur affiche l’adresse sélectionnable et une instruction de copie manuelle ; aucune réussite n’est simulée. Le retour est accessible par une région de statut. La sélection manuelle ne prend pas le focus dans une scène inactive et les réponses asynchrones sont ignorées après démontage.
 
-Les coordonnées publiques fournies par le propriétaire sont centralisées dans `src/config/contact.ts`. GitHub, LinkedIn et email sont affichés dans Contact. X, Instagram et Facebook sont également utilisés dans le portrait. Aucune adresse, URL ou expérience supplémentaire n’est inventée.
+Bloub reste l’unique SVG du gestionnaire de scènes. Son repère central est mesuré par le contrôleur de transition existant ; les trajets depuis la barre, leurs inverses et les accès directs sont conservés. Un ResizeObserver recalcule seulement son ancrage lorsque le contenu se redimensionne, notamment lors d’une erreur de copie. L’animation d’entrée n’anime que le texte et les actions, pas le personnage. Le nettoyage GSAP et la préférence de mouvement réduit sont conservés.
 
-## Configuration publique
+La scène réutilise les trois lignes du cadre global : en-tête, contenu central et footer. Les règles locales utilisent `clamp()` et la hauteur du viewport pour les espacements et la taille de Bloub. Les faibles hauteurs réduisent d’abord ces espaces ; aucun `transform: scale()` n’est appliqué à la scène. Le défilement central natif reste possible si nécessaire, surtout sur mobile et pour la copie manuelle. Aucun nouveau gestionnaire de scroll n’est ajouté. Le footer et la navigation restent hors de cette zone.
 
-Copier `.env.example` vers `.env.local` si des valeurs doivent être remplacées. Le fichier local est ignoré ; l’exemple est versionnable. Une valeur publique vide masque le lien concerné.
+Vérifications : TypeScript, lint et build réussis ; 25 tests ciblés Contact / configuration / trajets de Bloub réussis. La suite complète contient 199 tests réussis et neuf échecs déjà constatés avant ce sprint, sur les contenus/galeries de projets et la navigation radar/parcours. Les tests associés au formulaire et au service supprimés ont été remplacés par ceux des nouvelles actions.
 
-```dotenv
-VITE_CONTACT_EMAIL=tfmukendi@gmail.com
-VITE_CONTACT_GITHUB=https://github.com/Tranck04
-VITE_CONTACT_LINKEDIN=https://www.linkedin.com/in/tracy-franck-mukendi-8bb90242a
-VITE_CONTACT_ENDPOINT=
-```
-
-Les variables `VITE_` sont incorporées au JavaScript public lors du build. **Ne jamais y placer une clé privée, un mot de passe SMTP ou un token de fournisseur.** Le destinataire serveur et les identifiants du fournisseur se configurent exclusivement dans l’environnement du backend.
-
-L’endpoint peut être un chemin de même origine, par exemple `/api/contact` si l’hébergement le dessert réellement, ou une URL HTTPS complète contrôlée par le propriétaire. L’exemple n’est pas une route déjà implémentée. Les URLs HTTP, les URLs contenant des identifiants et les chemins commençant par `//` sont refusés.
-
-Après modification de l’environnement, redémarrer Vite en développement ou reconstruire le site en production.
-
-## Contrat du serveur à fournir
-
-`createContactSubmitter` dans `src/services/contactService.ts` envoie une requête POST avec `Content-Type: application/json` et `Accept: application/json`. Les cookies ne sont pas envoyés et les redirections sont refusées.
-
-```json
-{
-  "name": "Nom du visiteur",
-  "email": "visiteur@example.com",
-  "message": "Son message",
-  "website": ""
-}
-```
-
-Les trois premiers champs sont obligatoires et leurs espaces périphériques sont supprimés. `website` est un honeypot qui doit rester vide.
-
-Le serveur doit :
-
-1. Valider de nouveau les types, les champs obligatoires, l’email et les limites : nom 100 caractères, email 254, message 5 000. Limiter également la taille du corps HTTP.
-2. Refuser le honeypot rempli ; ne jamais transformer ce refus en faux succès.
-3. Appliquer une limitation de débit avec réponse HTTP 429 en cas d’excès et une politique d’origine/CORS adaptée au domaine réel du portfolio.
-4. Utiliser un fournisseur d’email ou une file de livraison configurée avec des secrets uniquement côté serveur. Garder le destinataire et l’expéditeur vérifié côté serveur ; utiliser l’adresse du visiteur comme adresse de réponse après validation.
-5. Attendre un véritable accusé d’acceptation du fournisseur ou de la file avant de répondre avec succès. Éviter les journaux contenant les noms, adresses ou messages des visiteurs.
-
-Réponse de succès attendue : un statut HTTP 2xx **et** le JSON exact suivant (des champs supplémentaires sont tolérés).
-
-```json
-{ "success": true }
-```
-
-Répondre avec un statut HTTP d’erreur pour une validation refusée, un débit dépassé ou une panne du fournisseur. Le frontend n’affiche pas aveuglément un message d’erreur arbitraire provenant du serveur. Une réponse vide, HTML, un simple HTTP 200, `success: false` ou la chaîne `"true"` ne sont pas interprétés comme un succès.
-
-Le client annule une requête après 15 secondes et conserve le brouillon. Un timeout ne prouve pas que le serveur n’a rien reçu : le message indique que l’envoi n’a pas pu être confirmé. Pour limiter les doublons après un timeout ambigu, le futur serveur peut aussi prendre en charge une clé d’idempotence ; aucun mécanisme serveur de ce type n’est livré ici.
-
-## Mise en service
-
-1. Créer ou connecter un backend/serverless sur l’infrastructure choisie et implémenter le contrat ci-dessus. Un hébergement statique seul ne suffit pas.
-2. Renseigner ses secrets, son destinataire, son expéditeur et ses règles antispam dans son environnement serveur.
-3. Tester ce service indépendamment, notamment refus de validation, honeypot, limitation de débit et panne du fournisseur.
-4. Renseigner son URL dans `VITE_CONTACT_ENDPOINT`, puis exécuter `npm run typecheck`, `npm run lint`, `npm test` et `npm run build`.
-5. Vérifier avec une boîte de test contrôlée qu’un message est réellement pris en charge, qu’un refus conserve le texte et que le succès est annoncé au clavier et au lecteur d’écran.
-
-Aucun fournisseur n’est installé ou déployé par ce sprint. Les tests automatisés simulent le transport pour vérifier les états ; ils n’envoient pas d’email réel.
-
-## Comportement après réception confirmée
-
-Une réponse positive réelle remplace les champs par une confirmation accessible, anime sobrement la lettre et déclenche le `wink` original de Bloub si Contact est encore actif. La bulle devient « À bientôt. ». Si l’utilisateur consulte une autre scène, son personnage ne réagit pas ailleurs ; la confirmation est conservée pour son retour. Le bouton « Écrire un nouveau message » réinitialise explicitement les champs et remet le focus sur le nom.
-
-Les erreurs conservent les champs et permettent une nouvelle tentative. Les données saisies restent uniquement dans l’état React pendant la session de page ; elles ne sont pas enregistrées dans le stockage local. Un rechargement perd le brouillon. La requête est annulée au démontage du composant. Les mouvements réduits suppriment la chorégraphie sans supprimer les états ni les actions.
+La vérification visuelle de 1920 × 1080, 1366 × 768, 1280 × 720, 390 × 844 et 375 × 667 n’a pas pu être exécutée : l’hôte navigateur et le contrôle natif sont indisponibles. Les tests DOM ne prouvent pas l’absence de débordement CSS dans ces formats. Aucun email n’a été envoyé et aucun presse-papiers réel n’a été modifié pendant les tests : l’API est simulée dans les fixtures.

@@ -10,7 +10,7 @@ const cleanups: Array<() => void> = []
 afterEach(() => { cleanups.splice(0).forEach(fn => fn()); document.body.innerHTML = ''; vi.restoreAllMocks() })
 
 function setup(reduced = false, mobile = false) {
-  document.body.innerHTML = '<main><div class="scroll"><section class="hero"><div class="frame"></div></section></div><section class="projects"></section><section class="journey"></section><section class="skills"></section><section class="contact"><div data-contact-bubble>On garde le contact ?</div><div class="contact-anchor"></div></section><div class="mascot"><svg><path data-body/><path data-silhouette/><path data-eye/><path data-eye/></svg></div></main><button class="home"></button>'
+  document.body.innerHTML = '<main><div class="scroll"><section class="hero"><div class="frame"></div></section></div><section class="projects"></section><section class="journey"></section><section class="skills"></section><section class="contact"><div class="contact-anchor"></div></section><div class="mascot"><svg><path data-body/><path data-silhouette/><path data-eye/><path data-eye/></svg></div></main><button class="home"></button>'
   const stage = document.querySelector('main')!
   const backgroundElement = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   const background = createBackgroundController(backgroundElement)
@@ -181,13 +181,11 @@ it('moves the one visible mascot from the Home slot into Contact and back while 
   expect(mascot.pose.opacity).toBe(1)
   motion.timeline!.progress(1)
   expect(mascot.pose).toMatchObject({ x: 252, y: 372, scale: 1.2, opacity: 1 })
-  expect(contact.querySelector<HTMLElement>('[data-contact-bubble]')!.style.opacity).toBe('1')
   motion.go('skills')
   motion.timeline!.pause().seek(.5, false)
   expect(mascot.pose.opacity).toBe(1)
   motion.timeline!.progress(1)
   expect(mascot.pose).toEqual(start)
-  expect(contact.querySelector<HTMLElement>('[data-contact-bubble]')!.style.opacity).toBe('0')
   expect(document.querySelectorAll('.mascot')).toHaveLength(1)
 })
 it('supports direct Contact access from Hero and the reverse occlusion path without a teleport', () => {

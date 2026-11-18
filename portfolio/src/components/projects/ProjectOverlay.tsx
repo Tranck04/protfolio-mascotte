@@ -163,7 +163,7 @@ export function ProjectOverlay({ project, source, reduced, onClose }: {
     <div className="project-overlay-backdrop" ref={backdropRef} onMouseDown={handleBackdropMouseDown} aria-hidden="true" />
     <section ref={panelRef} className="project-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="project-detail-title" tabIndex={-1}>
       <button ref={closeRef} type="button" className="overlay-close" aria-label="Fermer le projet" onClick={close}><X size={18} strokeWidth={1.7} /></button>
-      <div className="overlay-scroll">
+      <div className="overlay-scroll" data-scroll-region="">
         <ProjectDetail project={project} reduced={reduced} />
       </div>
     </section>

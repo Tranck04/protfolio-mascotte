@@ -1,6 +1,6 @@
 # Portfolio — Sprints 01 à 06
 
-React · TypeScript · Vite · GSAP · SVG · Lucide React. Interface française, thème sombre initial, thème clair et préférence de mouvement persistés localement. L’application fonctionne localement sans serveur applicatif. L’envoi direct de messages est explicitement indisponible en l’absence de backend ; le lien email ouvre la messagerie du visiteur.
+React · TypeScript · Vite · GSAP · SVG · Lucide React. Interface française, thème sombre initial, thème clair et préférence de mouvement persistés localement. L’application fonctionne localement sans serveur applicatif. Le lien email ouvre directement la messagerie du visiteur ; la copie de l’adresse offre une autre option.
 
 ## Lancer
 
@@ -40,10 +40,10 @@ npm run preview
 - `src/data/skills.ts` : modèle `SkillDomain`, cinq domaines, échelle qualitative et références aux projets existants.
 - `src/components/skills/` : `radarGeometry`, `SkillRadar`, `useSkillSelection`, `SkillDetailPanel`, `SkillLevelLegend`.
 - `src/animation/skillsAnimations.ts`, `src/styles/skills.css` : entrée synchronisée du radar et présentation responsive.
-- `src/scenes/ContactScene.tsx`, `src/components/contact/ContactForm.tsx`, `ContactLinks.tsx` : composition de conclusion, lettre, confirmation accessible, liens et footer intégré.
-- `src/hooks/useContactForm.ts` : validation, états du formulaire, requête unique, conservation du brouillon, annulation au démontage et nouvelle correspondance.
-- `src/services/contactService.ts`, `src/config/contact.ts`, `.env.example` : contrat d’envoi, coordonnées publiques et futur endpoint ; aucun fournisseur d’email simulé.
-- `src/animation/contactTravel.ts`, `contactAnimations.ts`, `src/styles/contact.css` : géométrie mesurée, arrivée de la lettre, réaction après confirmation et responsive.
+- `src/scenes/ContactScene.tsx`, `src/components/contact/ContactActions.tsx`, `ContactLinks.tsx` : composition de conclusion, actions email et copie, liens et footer intégré.
+- `src/hooks/useCopyEmail.ts` : copie dans le presse-papiers, confirmation après réussite et alternative manuelle.
+- `src/config/contact.ts`, `.env.example` : coordonnées publiques centralisées.
+- `src/animation/contactTravel.ts`, `contactAnimations.ts`, `src/styles/contact.css` : géométrie mesurée, entrée discrète des actions et responsive.
 - `src/components/background/MorphingBackground.tsx`, `backgroundShapes.ts`, `backgroundAnimations.ts`, `src/styles/background.css` : fond SVG unique, silhouettes compatibles, composition relative au viewport, morphing dans la timeline des scènes et thèmes.
 - `src/data/projects.ts` : modèle typé et catalogue modifiable, quatre projets principaux, trois secondaires, échange de deux identités.
 - `src/hooks/usePreferences.ts` : thèmes, stockage tolérant aux erreurs et prise en compte des changements système de mouvement réduit.
@@ -105,17 +105,21 @@ Un projet associé déclenche la transition vers Projets, puis ouvre le **même 
 
 Le scroll depuis la fin de Parcours rejoint Compétences, et le scroll vers le haut depuis le début de Compétences revient à Parcours. Les états et positions de défilement du parcours sont conservés. L’indicateur Compétences est actif et Bloub reste dans son emplacement Accueil. Depuis le Sprint 05, le scroll vers le bas rejoint Contact.
 
-## Contact — Sprint 05
+## Contact — Sprint 16
 
-`ContactScene` conserve la composition plein écran, avec accueil à gauche, lettre à droite et footer intégré. Sur mobile, la composition devient verticale avec un défilement interne. La zone d’accueil reste visible pendant la consultation de la lettre ; le scroll recalcule l’ancrage de Bloub. Les gestes commencés dans la lettre ne déclenchent pas de changement de scène. La navigation flottante, le bouton Compétences et le retour au début restent accessibles.
+La scène est une conclusion centrée : « Me contacter. », sous-titre, repère de la mascotte persistante, bouton email, copie de l’adresse et liens GitHub / LinkedIn. Le marqueur, la signature supérieure et le footer commun sont conservés. Le formulaire, la lettre, la bulle, le transport HTTP et les réactions d’envoi ont été supprimés après vérification de leurs usages.
 
-La même instance SVG quitte la barre en suivant une courbe quadratique ; sa position et son échelle évoluent dans la timeline verticale existante. Les rectangles réels de la scène, de son marqueur et du bouton Accueil déterminent les ancrages. Le calcul retire la translation du panneau avant de cibler sa position finale et recalcule les mesures après un redimensionnement. Les trajets directs Contact ↔ Hero préservent aussi la sortie et l’occlusion du portrait. Aucun second personnage ni fondu ne remplace ce déplacement. La bulle arrive à la fin du trajet ; le regard ne suit pas les frappes. Le moteur et les formes originales de Bloub restent inchangés.
+`ContactActions.tsx` utilise l’adresse publique déjà configurée dans `src/config/contact.ts`, également utilisée par `contactMailto`. Le bouton « M’écrire un email » ouvre la messagerie ; il n’effectue aucun envoi automatique et ne prétend jamais qu’un message est reçu. Les coordonnées restent modifiables via les variables publiques de `.env.example`. Aucun backend, secret ou fournisseur d’email n’est nécessaire.
 
-Le formulaire sépare l’état et la validation (`useContactForm`), l’interface (`ContactForm`) et le transport (`contactService`). Les champs ont des labels visibles, des limites de 100 / 254 / 5 000 caractères et des erreurs associées. Les requêtes concurrentes sont empêchées ; le brouillon est conservé après erreur et entre les visites de scènes, sans stockage persistant des données personnelles. Une réponse HTTP réussie contenant précisément `success: true` est nécessaire pour la confirmation, l’animation de la lettre et le clin d’œil. Une erreur, un timeout, un clic ou un simple HTTP 200 ne suffisent pas. Les tests de succès utilisent uniquement un transport contrôlé ; aucun message réel n’a été envoyé pendant les vérifications.
+`useCopyEmail.ts` appelle l’API Clipboard et confirme « Adresse copiée » uniquement après résolution positive. Les doubles demandes simultanées sont empêchées. Une absence d’API ou une erreur affiche l’adresse sélectionnable et une instruction de copie manuelle ; aucune réussite n’est simulée. Le retour est accessible par une région de statut. La sélection manuelle ne prend pas le focus dans une scène inactive et les réponses asynchrones sont ignorées après démontage.
 
-**État livré : aucun backend ni service d’email n’est configuré.** Le bouton d’envoi direct est désactivé et l’interface le signale. L’alternative email utilise **tfmukendi@gmail.com**, avec GitHub et LinkedIn fournis par le propriétaire. Les autres liens transmis sont utilisés dans le portrait ; aucun numéro WhatsApp n’a été inventé. Les coordonnées sont centralisées dans `src/config/contact.ts` et peuvent être remplacées par les variables publiques de `.env.example`.
+Bloub reste l’unique SVG du gestionnaire de scènes. Son repère central est mesuré par le contrôleur de transition existant ; les trajets depuis la barre, leurs inverses et les accès directs sont conservés. Un ResizeObserver recalcule seulement son ancrage lorsque le contenu se redimensionne, notamment lors d’une erreur de copie. L’animation d’entrée n’anime que le texte et les actions, pas le personnage. Le nettoyage GSAP et la préférence de mouvement réduit sont conservés.
 
-Pour activer le véritable envoi, fournir un endpoint serveur avec validation, limitation de débit et fournisseur d’email configuré côté serveur, puis renseigner `VITE_CONTACT_ENDPOINT` et reconstruire l’application. Le contrat exact et les opérations nécessaires sont dans [docs/contact-setup.md](docs/contact-setup.md). Aucun secret ne doit être placé dans les variables `VITE_`.
+La scène réutilise les trois lignes du cadre global : en-tête, contenu central et footer. Les règles locales utilisent `clamp()` et la hauteur du viewport pour les espacements et la taille de Bloub. Les faibles hauteurs réduisent d’abord ces espaces ; aucun `transform: scale()` n’est appliqué à la scène. Le défilement central natif reste possible si nécessaire, surtout sur mobile et pour la copie manuelle. Aucun nouveau gestionnaire de scroll n’est ajouté. Le footer et la navigation restent hors de cette zone.
+
+Vérifications : TypeScript, lint et build réussis ; 25 tests ciblés Contact / configuration / trajets de Bloub réussis. La suite complète contient 199 tests réussis et neuf échecs déjà constatés avant ce sprint, sur les contenus/galeries de projets et la navigation radar/parcours. Les tests associés au formulaire et au service supprimés ont été remplacés par ceux des nouvelles actions.
+
+La vérification visuelle de 1920 × 1080, 1366 × 768, 1280 × 720, 390 × 844 et 375 × 667 n’a pas pu être exécutée : l’hôte navigateur et le contrôle natif sont indisponibles. Les tests DOM ne prouvent pas l’absence de débordement CSS dans ces formats. Aucun email n’a été envoyé et aucun presse-papiers réel n’a été modifié pendant les tests : l’API est simulée dans les fixtures.
 
 ## Fond contextuel — Sprint 06
 
@@ -141,7 +145,7 @@ Modifier `src/data/projects.ts` : garder des identifiants stables, exactement qu
 
 ## Périmètre et limites
 
-Introduction, Hero, Projets, Parcours, Compétences et Contact sont disponibles. La photo existante du propriétaire est conservée. Les projets restent des démonstrations clairement identifiées et les niveaux des compétences restent provisoires. L’envoi direct attend un backend réel ; l’alternative email est disponible.
+Introduction, Hero, Projets, Parcours, Compétences et Contact sont disponibles. La photo existante du propriétaire est conservée. Les projets restent des démonstrations clairement identifiées et les niveaux des compétences restent provisoires. Contact utilise directement la messagerie du visiteur et la copie de l’adresse, sans formulaire ni backend.
 
 L’introduction se joue au chargement et peut être rejouée avec le premier indicateur. Une préférence système de mouvement réduit ouvre directement le Hero. Le bouton de mouvement permet de modifier cette préférence pour ce site.
 

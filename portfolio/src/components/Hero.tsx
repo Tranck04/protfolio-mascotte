@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ArrowDown } from 'lucide-react'
 import type { RefObject } from 'react'
 import { Portrait } from './Portrait'
 
@@ -18,6 +18,6 @@ export function Hero({ heroRef, frameRef, active, announce, showProjects, showCo
       </div>
       <Portrait frameRef={frameRef} announce={announce} />
     </div>
-    <div className="hero-bottom"><span>DE LA CURIOSITÉ. DU CODE. DU SENS.</span></div>
+    <div className="hero-bottom"><span>DE LA CURIOSITÉ. DU CODE. DU SENS.</span><button className="hero-return" onClick={showProjects}>Projets <ArrowDown size={18} /></button></div>
   </section>
 }

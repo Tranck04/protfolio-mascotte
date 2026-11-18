@@ -1,12 +1,12 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { FocusEvent, Ref } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import gsap from 'gsap'
 import { chronologicalJourney, journeyCategories } from '../data/journey'
 import { JourneyPanel } from '../components/journey/JourneyPanel'
 
-export function JourneyScene({ sceneRef, active, visible, reduced, projects }: {
-  sceneRef: Ref<HTMLElement>; active: boolean; visible: boolean; reduced: boolean; projects: () => void;
+export function JourneyScene({ sceneRef, active, visible, reduced, projects, skills, openProject }: {
+  sceneRef: Ref<HTMLElement>; active: boolean; visible: boolean; reduced: boolean; projects: () => void; skills: () => void; openProject: (id: string) => void;
 }) {
   const content = useRef<HTMLDivElement>(null)
   const [selectedId, setSelectedId] = useState<string | null>(chronologicalJourney[0]?.id ?? null)
@@ -37,9 +37,9 @@ export function JourneyScene({ sceneRef, active, visible, reduced, projects }: {
   return <section className="scene-panel journey-panel" ref={sceneRef} data-scene-scroll="" aria-labelledby="journey-title" aria-hidden={!active} inert={!active}>
     <div className="journey-shell" ref={content}>
       <div className="journey-topline"><span className="eyebrow"><span className="tiny-dot" />03 — PARCOURS</span><span>APPRENDRE / PRATIQUER / ÉVOLUER</span></div>
-      <div className="scene-body" data-scene-scroll=""><div className="journey-heading"><h2 id="journey-title" tabIndex={-1}>Chaque étape <em>compte.</em></h2><p>Études, expériences et apprentissages.</p></div>
+      <div className="scene-body" data-scene-scroll=""><div className="journey-heading"><h2 id="journey-title" tabIndex={-1}>Mon <em>parcours.</em></h2><p>Études, expériences et apprentissages.</p></div>
       <div className="journey-layout">
-        <div className="journey-timeline" onPointerLeave={restore} onBlur={handleBlur}>
+        <div className="journey-timeline" data-scroll-region="" onPointerLeave={restore} onBlur={handleBlur}>
           <span className="journey-rail" aria-hidden="true" />
           <svg className="journey-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path data-journey-line="" d="M1 0 V100" pathLength="1" /></svg>
           <ol aria-label="Parcours du plus récent au plus ancien">{chronologicalJourney.map(item => {
@@ -57,10 +57,10 @@ export function JourneyScene({ sceneRef, active, visible, reduced, projects }: {
           })}</ol>
         </div>
         <div className="journey-detail-slot">
-          {entry && <JourneyPanel entry={entry} reduced={reduced} />}
+          {entry && <JourneyPanel entry={entry} reduced={reduced} openProject={openProject} />}
         </div>
       </div>
-      </div><div className="journey-bottom"><button className="journey-return" onClick={projects}><ArrowLeft size={14} />Retour aux projets</button><ul className="journey-legend" aria-label="Catégories du parcours">{Object.entries(journeyCategories).map(([category, value]) => <li className={`category-${category}`} key={category}><span className="legend-symbol" aria-hidden="true" />{value.label}</li>)}</ul><span className="journey-instruction">Survolez un jalon. Cliquez pour épingler.</span></div>
+      </div><div className="journey-bottom"><button className="journey-return" onClick={projects}><ArrowUp size={14} />Projets</button><button className="journey-return" onClick={skills}>Compétences <ArrowDown size={14}/></button></div>
     </div>
   </section>
 }

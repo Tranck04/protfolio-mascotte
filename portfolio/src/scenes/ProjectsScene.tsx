@@ -101,10 +101,10 @@ export function ProjectsScene({ sceneRef, apiRef, active, reduced, onViewChange,
     <div className="projects-views" ref={root} data-projects-view={view.current} onKeyDown={event => { if (event.key === 'Escape' && view.current === 'archive' && !overlay) { event.stopPropagation(); change('featured') } }}>
       <div className="project-view featured-view" data-project-view="featured" data-scene-scroll="" data-visible={isVisible('featured')} aria-hidden={!interactive('featured')} inert={!interactive('featured')}>
         <div className="projects-shell"><div className="projects-eyebrow"><span className="eyebrow"><span className="tiny-dot" /> 02 — PROJETS</span><span>EXPLORER / CONSTRUIRE / AFFINER</span></div>
-          <div className="scene-body" data-scene-scroll=""><div className="projects-heading"><div><h2 ref={mainHeading} id="projects-title" tabIndex={-1}>Du code.<br className="mobile-only" /> <em>Du concret.</em></h2></div><button className="gallery-switch" disabled={viewBusy || !!overlay} onClick={() => change('archive')}>Autres projets <span>0{secondaryProjects.length}</span><ArrowUpRight size={17} /></button></div>
+          <div className="scene-body" data-scene-scroll=""><div className="projects-heading"><div><h2 ref={mainHeading} id="projects-title" tabIndex={-1}>Mes <em>projets.</em></h2></div><button className="gallery-switch" disabled={viewBusy || !!overlay} onClick={() => change('archive')}>Autres projets <span>0{secondaryProjects.length}</span><ArrowUpRight size={17} /></button></div>
           <p className="projects-note">Une sélection de projets personnels, académiques et professionnels.</p>
           <FeaturedGallery open={open} />
-          </div><div className="projects-footer"><button onClick={home}><ArrowUp size={14} /> Retour à l’accueil</button><button onClick={journey}> Continuer vers le parcours <ArrowDown size={14} /></button></div>
+          </div><div className="projects-footer"><button onClick={home}><ArrowUp size={14} /> Accueil</button><button onClick={journey}> Parcours <ArrowDown size={14} /></button></div>
         </div>
       </div>
       <div className="project-view" data-project-view="archive" data-scene-scroll="" data-visible={isVisible('archive')} aria-hidden={!interactive('archive')} inert={!interactive('archive')}>

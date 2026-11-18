@@ -1,99 +1,92 @@
-// @vitest-environment happy-dom
-import { act } from 'react'
+import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ContactScene } from './ContactScene'
 import { contactConfig } from '../config/contact'
-import type { ContactResult, ContactSubmitter } from '../services/contactService'
 
-let root: Root
-let host: HTMLDivElement
-const confirmed = vi.fn()
+let root: Root, host: HTMLDivElement
+const home = vi.fn(), skills = vi.fn()
 beforeEach(() => {
-  confirmed.mockClear(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
+  home.mockClear(); skills.mockClear()
 })
-afterEach(async () => { await act(() => root.unmount()); host.remove(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
-const render = (submitter: ContactSubmitter, configured = true, active = true) => act(() => root.render(<ContactScene sceneRef={() => {}} anchorRef={() => {}} active={active} visible={active} reduced home={() => {}} skills={() => {}} onConfirmed={confirmed} config={{ ...contactConfig, endpoint: configured ? '/api/contact' : undefined }} submitter={submitter} />))
-async function change(name: string, value: string) {
-  const input = host.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`)!
-  const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
-  await act(() => { Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })) })
+afterEach(async () => { await act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+async function render(config = contactConfig, active = true) {
+  await act(() => root.render(<StrictMode><ContactScene sceneRef={() => {}} anchorRef={() => {}} active={active} visible={active} reduced home={home} skills={skills} config={config} /></StrictMode>))
 }
-const submit = () => act(() => host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-const fill = async () => { await change('name', 'Visiteur test'); await change('email', 'test@example.org'); await change('message', 'Un message de test uniquement. Aucun email réel n’est envoyé.') }
+const copy = () => host.querySelector<HTMLButtonElement>('.contact-copy')!
+const status = () => host.querySelector('[role="status"]')!.textContent
 
-it('clearly exposes unavailable direct sending, real mailto/social links and no simulated confirmation', async () => {
-  const service = vi.fn<ContactSubmitter>()
-  await render(service, false)
-  expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true)
-  expect(host.textContent).toContain('L’envoi direct n’est pas encore disponible')
-  expect(host.querySelector('.contact-letter-signature a')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com/)
-  expect(host.querySelector('.contact-links a')!.getAttribute('href')).toBe('https://github.com/Tranck04')
-  expect(host.querySelector('.contact-bubble')!.textContent).toBe('On garde le contact ?')
-  expect(host.querySelector('.contact-confirmation')).toBeNull()
-  expect(service).not.toHaveBeenCalled()
+it('renders the centered contact order, real mailto and only GitHub and LinkedIn, without a form or duplicate mascot', async () => {
+  await render()
+  expect(host.querySelector('h2')!.textContent).toBe('Me contacter.')
+  expect(host.querySelector('h2 em')!.textContent).toBe('contacter.')
+  expect(host.textContent).toContain('Un projet, une opportunité ou une idée à partager ?')
+  expect(host.textContent).toContain('LES BONNES IDÉES COMMENCENT PAR UN ÉCHANGE.')
+  expect(host.querySelector('form, input, textarea, .contact-letter, .contact-bubble, .mascot, svg[data-body]')).toBeNull()
+  expect([...host.querySelector('.contact-content')!.children].map(child => child.className)).toEqual(['contact-heading', 'contact-mascot-anchor', 'contact-actions', 'contact-links'])
+  expect(host.querySelector('.contact-email')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com\?subject=/)
+  expect(host.querySelectorAll('.contact-links a')).toHaveLength(2)
+  expect(host.querySelector('[aria-label="GitHub — nouvel onglet"]')!.getAttribute('href')).toBe(contactConfig.github)
+  expect(host.querySelector('[aria-label="LinkedIn — nouvel onglet"]')!.getAttribute('href')).toBe(contactConfig.linkedin)
+  expect(status()).toBe('')
 })
-it('validates required fields and focuses an invalid input without calling the service', async () => {
-  vi.useFakeTimers()
-  const service = vi.fn<ContactSubmitter>()
-  await render(service)
-  await submit()
-  await act(() => vi.advanceTimersByTime(20))
-  expect(service).not.toHaveBeenCalled()
-  expect(host.querySelectorAll('[aria-invalid="true"]')).toHaveLength(3)
-  expect(document.activeElement).toBe(host.querySelector('#contact-name'))
-  expect(host.querySelector('#contact-email')!.getAttribute('aria-describedby')).toBe('contact-email-error')
-  expect(host.querySelector('[role="alert"]')!.textContent).toContain('corriger')
+it('confirms copying only after Clipboard resolves and prevents duplicate pending requests', async () => {
+  let resolve!: () => void
+  const writeText = vi.fn(() => new Promise<void>(done => { resolve = done }))
+  vi.stubGlobal('navigator', { clipboard: { writeText } })
+  await render(); await act(() => copy().click())
+  expect(writeText).toHaveBeenCalledWith(contactConfig.email)
+  expect(copy().disabled).toBe(true)
+  expect(status()).toBe('')
+  await act(() => copy().click()); expect(writeText).toHaveBeenCalledTimes(1)
+  await act(() => resolve())
+  expect(status()).toBe('Adresse copiée')
+  expect(copy().disabled).toBe(false)
+  expect(home).not.toHaveBeenCalled(); expect(skills).not.toHaveBeenCalled()
+  expect(host.textContent).not.toContain('Message bien reçu')
 })
-it('keeps the draft on failure, prevents concurrent requests and only celebrates an explicit success', async () => {
-  let respond!: (result: ContactResult) => void
-  const service = vi.fn<ContactSubmitter>().mockImplementationOnce(() => new Promise(resolve => { respond = resolve })).mockResolvedValueOnce({ success: true })
-  await render(service); await fill()
-  await submit(); await submit()
-  expect(service).toHaveBeenCalledTimes(1)
-  expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true)
-  expect(host.querySelector('.contact-confirmation')).toBeNull()
-  expect(confirmed).not.toHaveBeenCalled()
-  await act(() => respond({ success: false, code: 'network', error: 'Connexion indisponible. Réessayez.' }))
-  expect(host.querySelector<HTMLInputElement>('#contact-name')!.value).toBe('Visiteur test')
-  expect(host.querySelector<HTMLTextAreaElement>('#contact-message')!.value).toContain('Aucun email réel')
-  expect(host.querySelector('[role="alert"]')!.textContent).toContain('Réessayez')
-  expect(host.querySelector('.contact-bubble')!.textContent).toBe('On garde le contact ?')
-  expect(confirmed).not.toHaveBeenCalled()
-  await submit()
-  expect(host.querySelector('.contact-confirmation[role="status"]')).not.toBeNull()
-  expect(host.querySelector('.contact-bubble')!.textContent).toBe('À bientôt.')
-  expect(confirmed).toHaveBeenCalledTimes(1)
-  await act(() => host.querySelector<HTMLButtonElement>('.contact-confirmation button')!.click())
-  expect(host.querySelector<HTMLInputElement>('#contact-name')!.value).toBe('')
-  expect(host.querySelector('.contact-bubble')!.textContent).toBe('On garde le contact ?')
+it('offers a selectable manual address after a denied copy, without claiming success', async () => {
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('Denied')) } })
+  await render(); await act(() => copy().click())
+  expect(status()).toBe('')
+  expect(host.querySelector('[role="alert"]')!.textContent).toContain('copie automatique est indisponible')
+  expect(host.querySelector('code')!.textContent).toBe(contactConfig.email)
+  expect(document.activeElement).toBe(host.querySelector('code'))
+  expect(window.getSelection()?.toString()).toBe(contactConfig.email)
+  expect(copy().disabled).toBe(false)
 })
-it('does not show success on a thrown error and preserves fields for another attempt', async () => {
-  const service = vi.fn<ContactSubmitter>().mockRejectedValue(new Error('offline'))
-  await render(service); await fill(); await submit()
-  expect(host.querySelector('[role="alert"]')!.textContent).toContain('conservé')
-  expect(host.querySelector<HTMLInputElement>('#contact-email')!.value).toBe('test@example.org')
-  expect(host.querySelector('.contact-confirmation')).toBeNull()
-  expect(confirmed).not.toHaveBeenCalled()
+it('uses the manual alternative if the Clipboard API is absent', async () => {
+  vi.stubGlobal('navigator', {})
+  await render(); await act(() => copy().click())
+  expect(host.querySelector('code')!.textContent).toBe(contactConfig.email)
+  expect(status()).toBe('')
 })
-it('retains a confirmed result across scene visits without animating a mascot in another scene', async () => {
-  let respond!: (result: ContactResult) => void
-  const service = vi.fn<ContactSubmitter>().mockImplementation(() => new Promise(resolve => { respond = resolve }))
-  await render(service); await fill(); await submit()
-  await render(service, true, false)
-  await act(() => respond({ success: true }))
-  expect(confirmed).not.toHaveBeenCalled()
-  await render(service)
-  expect(host.querySelector('.contact-confirmation')).not.toBeNull()
-  expect(host.querySelector('.contact-bubble')!.textContent).toBe('À bientôt.')
-  expect(confirmed).not.toHaveBeenCalled()
+it('allows retrying a failed copy and clears the error only after a genuine success', async () => {
+  const writeText = vi.fn().mockRejectedValueOnce(new Error('Denied')).mockResolvedValueOnce(undefined)
+  vi.stubGlobal('navigator', { clipboard: { writeText } })
+  await render(); await act(() => copy().click())
+  expect(host.querySelector('[role="alert"]')).not.toBeNull()
+  await act(() => copy().click())
+  expect(status()).toBe('Adresse copiée'); expect(host.querySelector('[role="alert"]')).toBeNull()
 })
-it('cancels the pending request on unmount without logging personal information', async () => {
-  const service = vi.fn<ContactSubmitter>().mockImplementation(() => new Promise(() => {}))
-  await render(service); await fill(); await submit()
-  const signal = service.mock.calls[0][1]!.signal!
-  await act(() => root.render(<div />))
-  expect(signal.aborted).toBe(true)
-  expect(confirmed).not.toHaveBeenCalled()
+it('does not move focus into an inactive scene if a pending copy fails', async () => {
+  let reject!: (error: Error) => void
+  vi.stubGlobal('navigator', { clipboard: { writeText: () => new Promise((_, fail) => { reject = fail }) } })
+  await render(); await act(() => copy().click()); await render(contactConfig, false)
+  const outside = document.createElement('button'); document.body.appendChild(outside); outside.focus()
+  await act(() => reject(new Error('Denied')))
+  expect(document.activeElement).toBe(outside); outside.remove()
+})
+it('does not expose fake actions when coordinates are unavailable', async () => {
+  await render({ ownerName: contactConfig.ownerName })
+  expect(host.querySelector('a, .contact-copy')).toBeNull()
+  expect(host.textContent).toContain('Adresse email à renseigner')
+})
+it('retains copyright and explicit scene navigation', async () => {
+  await render()
+  expect(host.querySelector('footer')!.textContent).toContain(`© ${new Date().getFullYear()} ${contactConfig.ownerName}`)
+  await act(() => host.querySelector<HTMLButtonElement>('footer button')!.click()); expect(skills).toHaveBeenCalledTimes(1)
+  await act(() => host.querySelector<HTMLButtonElement>('footer button:last-child')!.click()); expect(home).toHaveBeenCalledTimes(1)
 })

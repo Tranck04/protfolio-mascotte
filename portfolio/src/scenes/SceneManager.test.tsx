@@ -51,7 +51,7 @@ it('keeps one Bloub through StrictMode, skipping, themes and motion changes', as
   expect(container.querySelector('.mascot')).toBe(bloub)
   await act(() => container.querySelector<HTMLButtonElement>('#hero .button-secondary')!.click())
   expect(container.querySelector('main')!.dataset.scene).toBe('contact')
-  expect(container.querySelector('.contact-letter-signature a')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com/)
+  expect(container.querySelector('.contact-email')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com/)
 })
 
 it('keeps current card identities and scroll positions through the existing project overlay and both scenes', async () => {
@@ -298,15 +298,13 @@ it('opens Contact after Skills, frees the Home icon and preserves the single mas
   expect(document.querySelector<HTMLButtonElement>('nav [data-home-slot]')!.getAttribute('aria-label')).toBe('Accueil')
   expect(bloub.style.transform).not.toBe(docked)
   expect(container.querySelector('.mascot')).toBe(bloub)
-  expect(container.querySelector('.contact-bubble')!.textContent).toBe('On garde le contact ?')
-  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true)
-  const message = container.querySelector<HTMLTextAreaElement>('#contact-message')!
-  await act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(message, 'Un brouillon conservé.'); message.dispatchEvent(new Event('input', { bubbles: true })) })
+  expect(container.querySelector('form, textarea')).toBeNull()
+  expect(container.querySelector('.contact-email')!.getAttribute('href')).toMatch(/^mailto:/)
   await act(() => container.querySelector<HTMLButtonElement>('.contact-footer button')!.click())
   expect(container.querySelector('main')!.dataset.scene).toBe('skills')
   expect(bloub.style.transform).toBe(docked)
   await act(() => document.querySelector<HTMLButtonElement>('nav [aria-label="Contact"]')!.click())
-  expect(message.value).toBe('Un brouillon conservé.')
+  expect(container.querySelector('.contact-email')).not.toBeNull()
   expect(container.querySelector('.contact-confirmation')).toBeNull()
 })
 it('keeps direct Contact exits and Return to beginning functional without reloading or replacing Bloub', async () => {
@@ -327,7 +325,7 @@ it('keeps direct Contact exits and Return to beginning functional without reload
   expect(container.querySelector('.mascot')).toBe(bloub)
   expect(container.querySelectorAll('.mascot')).toHaveLength(1)
 })
-it('settles Contact travel when reduced motion interrupts it and keeps the letter untouched', async () => {
+it('settles Contact travel when reduced motion interrupts it and keeps email accessible', async () => {
   await act(() => root.render(<SceneManager />))
   await act(() => container.querySelector<HTMLButtonElement>('.skip-button')!.click())
   await act(() => document.querySelector<HTMLButtonElement>('nav [aria-label="Contact"]')!.click())
@@ -335,12 +333,12 @@ it('settles Contact travel when reduced motion interrupts it and keeps the lette
   await act(() => document.querySelector<HTMLButtonElement>('[aria-label="Réduire les animations"]')!.click())
   expect(container.querySelector('main')!.dataset.scene).toBe('contact')
   expect(container.querySelector('main')!.dataset.transitioning).toBe('false')
-  expect(container.querySelector('form')!.getAttribute('aria-busy')).toBe('false')
+  expect(container.querySelector('form')).toBeNull()
   expect(container.querySelector('.contact-confirmation')).toBeNull()
   expect(document.querySelector<HTMLButtonElement>('nav [aria-label="Accueil"]')!.disabled).toBe(false)
 })
 
-it('keeps headers and footers outside the central scrollers, including the aligned Contact columns', async () => {
+it('keeps headers and footers outside the central scrollers, including the centered Contact content', async () => {
   localStorage.setItem('portfolio-motion', 'reduced')
   await act(() => root.render(<SceneManager />))
   for (const name of ['projects', 'journey', 'skills', 'contact']) {
@@ -352,8 +350,8 @@ it('keeps headers and footers outside the central scrollers, including the align
     expect(footer.parentElement).toBe(shell)
     expect(body.contains(footer)).toBe(false)
   }
-  expect(container.querySelector('.contact-welcome > .contact-heading')).not.toBeNull()
-  expect(container.querySelector('.contact-layout > .contact-letter')).not.toBeNull()
+  expect(container.querySelector('.contact-content > .contact-heading')).not.toBeNull()
+  expect(container.querySelector('.contact-content > .contact-actions')).not.toBeNull()
   expect(container.querySelector('.hero-grid')!.hasAttribute('data-scene-scroll')).toBe(true)
 })
 

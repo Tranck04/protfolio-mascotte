@@ -1,5 +1,6 @@
 import type { ContentScene } from './sceneTransition'
 import { CONTENT_SCENES } from './sceneTransition'
+import { getScrollRegionFromEvent } from './scrollRegions'
 
 export function adjacentScene(scene: 'intro' | ContentScene, direction: number): ContentScene | undefined {
   const index = CONTENT_SCENES.indexOf(scene as ContentScene)
@@ -18,9 +19,10 @@ export function bindSceneGestures({ element, current, locked, projectsMain, navi
   let touch: { x: number; y: number; target: EventTarget | null; direction: number } | null = null
   const targetElement = (target: EventTarget | null) => target instanceof Element ? target : null
   const inDialog = (target: EventTarget | null) => targetElement(target)?.closest('.project-overlay, [role="dialog"], [data-scene-gesture-ignore]') != null
-  const canExit = (target: EventTarget | null, direction: number) => {
+  const canExit = (event: Event, direction: number) => {
     if (current() === 'intro' || (current() === 'projects' && !projectsMain())) return false
-    const node = targetElement(target)
+    if (getScrollRegionFromEvent(event)) return false
+    const node = targetElement(event.target)
     if (node?.closest('input, textarea, select, [contenteditable="true"], .floating-nav, .project-overlay, [role="dialog"], [data-scene-gesture-ignore]')) return false
     let scroll = node?.closest<HTMLElement>('[data-scene-scroll]')
     while (scroll) {
@@ -39,7 +41,7 @@ export function bindSceneGestures({ element, current, locked, projectsMain, navi
     if (now - lastWheel > 240) { claimed = false; accumulated = 0; previousDirection = direction }
     lastWheel = now
     if (locked()) { claimed = true; event.preventDefault(); return }
-    if (!canExit(event.target, direction)) return
+    if (!canExit(event, direction)) return
     event.preventDefault()
     if (claimed) return
     if (direction !== previousDirection) accumulated = 0
@@ -51,7 +53,7 @@ export function bindSceneGestures({ element, current, locked, projectsMain, navi
     if (event.defaultPrevented || event.repeat || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return
     if (targetElement(event.target)?.closest('button, a, input, textarea, select, summary, [contenteditable="true"], .project-overlay, [role="dialog"], [data-scene-gesture-ignore]')) return
     const direction = ['ArrowDown', 'PageDown'].includes(event.key) ? 1 : ['ArrowUp', 'PageUp'].includes(event.key) ? -1 : 0
-    if (!direction || locked() || !canExit(event.target, direction)) return
+    if (!direction || locked() || !canExit(event, direction)) return
     event.preventDefault()
     change(direction)
   }
@@ -60,8 +62,8 @@ export function bindSceneGestures({ element, current, locked, projectsMain, navi
     const point = event.touches[0]
     touch = { x: point.clientX, y: point.clientY, target: event.target, direction: 0 }
     // Eligibility is captured before native scrolling, so reaching an edge doesn't steal a swipe.
-    const down = canExit(event.target, 1)
-    const up = canExit(event.target, -1)
+    const down = canExit(event, 1)
+    const up = canExit(event, -1)
     touch.direction = down && up ? 2 : down ? 1 : up ? -1 : 0
   }
   const touchmove = (event: TouchEvent) => {

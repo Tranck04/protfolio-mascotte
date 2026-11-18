@@ -28,7 +28,6 @@ export function createSceneTransition({ stage, heroPanel, heroScroll, projectsPa
   let watchdog: ReturnType<typeof setTimeout> | undefined
   const height = () => stage.clientHeight || window.innerHeight
   const panels = [heroPanel, projectsPanel, journeyPanel, skillsPanel, contactPanel]
-  const bubble = contactPanel?.querySelector<HTMLElement>('[data-contact-bubble]')
   const panelY = (index: number, scene: ContentScene) => (index - CONTENT_SCENES.indexOf(scene)) * height()
   const placePanels = (scene: ContentScene) => panels.forEach((panel, index) => { if (panel) gsap.set(panel, { y: panelY(index, scene) }) })
   const contactTarget = () => {
@@ -77,12 +76,10 @@ export function createSceneTransition({ stage, heroPanel, heroScroll, projectsPa
       placePanels(current)
       applyShape(current)
       anchor(current)
-      if (bubble) gsap.set(bubble, { opacity: current === 'contact' ? 1 : 0, y: 0 })
     } catch {
       // Keep content and navigation accessible even if the animation adapter fails.
       panels.forEach((panel, index) => { if (panel) panel.style.transform = `translateY(${panelY(index, current)}px)` })
       try { anchor(current) } catch { /* A rendering failure must not retain the scene lock. */ }
-      if (bubble) bubble.style.opacity = current === 'contact' ? '1' : '0'
     } finally {
       // Decoration must never retain the navigation lock, even if its renderer fails.
       try { background?.settle(current) } catch { /* Content remains independently usable. */ }
@@ -152,10 +149,6 @@ export function createSceneTransition({ stage, heroPanel, heroScroll, projectsPa
             Object.assign(mascot.pose, contactTravel(source, end, progress.t, Math.max(1, mascotElement.offsetWidth * 100 / 220), { width: stage.clientWidth, height: height() }), { opacity: 1, rotation: 0, scaleX: 1, scaleY: 1 })
             mascotElement.style.zIndex = '12'; mascot.render(mascot.time)
           } }, 0)
-        }
-        if (bubble && involvesContact) {
-          if (scene === 'contact') timeline.fromTo(bubble, { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: .24 }, SCENE_DURATION - .24)
-          else timeline.to(bubble, { opacity: 0, y: -3, duration: .16 }, 0)
         }
         // An independent guard releases interactions even if a GSAP callback is interrupted.
         watchdog = setTimeout(settle, SCENE_DURATION * 1000 + 500)

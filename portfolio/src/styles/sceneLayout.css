@@ -53,12 +53,8 @@
   padding: 14px 0 0;
   border-top: 1px solid var(--line);
 }
-.stage :is(.projects-footer, .journey-bottom, .skills-bottom, .contact-footer) button { min-height: 28px; padding: 3px 0; }
+.stage :is(.hero-bottom, .projects-footer, .journey-bottom, .skills-bottom, .contact-footer) button { min-height: 28px; padding: 3px 0; }
 .stage .journey-instruction { margin: 0; font-size: 8px; }
-.stage .contact-body { padding-top: clamp(48px, 8vh, 90px); }
-.stage .contact-layout { min-height: 100%; margin-top: 0; }
-.stage .contact-welcome { padding-top: 0; }
-.stage .contact-welcome .contact-heading { margin: 0 0 26px; }
 /* Internal gallery navigation belongs to the content, not to the shared viewport label. */
 .stage .view-topline .back-button { padding: 0; min-height: 16px; border: 0; }
 .stage .intro-eyebrow { top: var(--scene-top); left: calc(max(0px, (100vw - 1480px) / 2) + var(--scene-left)); }
@@ -72,8 +68,6 @@
 @media (max-width: 760px) {
   :root { --scene-top: 28px; --scene-bottom: 105px; --scene-left: 26px; --scene-right: 26px; --scene-footer-height: 110px; }
   .scene-body, .stage .hero-grid { padding: 28px 4px 22px; }
-  .stage .contact-body { padding-top: 28px; }
-  .stage .contact-welcome .contact-heading { margin-bottom: 6px; }
   .stage :is(.hero-bottom, .projects-footer, .journey-bottom, .skills-bottom, .contact-footer, .archive-note) { font-size: 8px; flex-direction: row; }
   .stage :is(.projects-footer, .journey-bottom, .skills-bottom, .contact-footer) button { min-height: 44px; }
   .stage .contact-footer > span { width: auto; }
@@ -84,4 +78,20 @@
 }
 @media (max-width: 370px) {
   :root { --scene-left: 20px; --scene-right: 20px; }
+}
+/* Height-driven compaction: every desktop scene fits the real viewport height. */
+@media (min-width: 761px) and (max-height: 820px) {
+  :root { --scene-top: 22px; --scene-bottom: 16px; --scene-footer-height: 52px; }
+  .scene-body, .stage .hero-grid { padding-top: 16px; padding-bottom: 14px; }
+  h1 { font-size: clamp(48px, 5.6vw, 78px); margin-bottom: 18px; }
+  .stage :is(.projects-heading h2, .journey-heading h2, .skills-heading h2, .archive-heading h2, .contact-heading h2) { font-size: clamp(30px, 3.4vw, 44px); }
+  .stage :is(.projects-heading, .journey-heading, .skills-heading, .archive-heading) { margin-top: 14px; margin-bottom: 14px; }
+  .stage :is(.journey-heading > p, .skills-heading > p, .archive-heading > p) { margin-top: 8px; }
+}
+@media (min-width: 761px) and (max-height: 680px) {
+  :root { --scene-top: 14px; --scene-bottom: 12px; --scene-footer-height: 46px; }
+  .scene-body, .stage .hero-grid { padding-top: 10px; padding-bottom: 8px; }
+  h1 { font-size: clamp(42px, 5vw, 64px); margin-bottom: 12px; }
+  .stage :is(.projects-heading h2, .journey-heading h2, .skills-heading h2, .archive-heading h2, .contact-heading h2) { font-size: clamp(26px, 3vw, 36px); }
+  .stage :is(.projects-heading, .journey-heading, .skills-heading, .archive-heading) { margin-top: 8px; margin-bottom: 10px; }
 }
