@@ -21,6 +21,8 @@ import { ProjectOverlay } from '../components/projects/ProjectOverlay'
 import { ContactScene } from './ContactScene'
 import { MorphingBackground } from '../components/background/MorphingBackground'
 import type { BackgroundController } from '../components/background/backgroundAnimations'
+import { createMascotReactions } from '../mascot/reactions'
+import type { MascotReaction, MascotReactionHandle } from '../mascot/reactions'
 
 export function SceneManager() {
   const stage = useRef<HTMLElement>(null)
@@ -40,6 +42,7 @@ export function SceneManager() {
   const pendingSkillProject = useRef<string | null>(null)
   const projectsApi = useRef<ProjectsSceneHandle>(null)
   const mascot = useRef<MascotController>(null)
+  const reactions = useRef<MascotReactionHandle | null>(null)
   const animation = useRef<ReturnType<typeof createIntroTimeline> | null>(null)
   const sceneMotion = useRef<ReturnType<typeof createSceneTransition> | null>(null)
   const [active, setActive] = useState<Scene>('intro')
@@ -98,6 +101,7 @@ export function SceneManager() {
           stage: stage.current!, heroPanel: hero.current!, heroScroll: hero.current!.querySelector<HTMLElement>('.hero-grid')!, projectsPanel: projectsPanel.current!, journeyPanel: journeyPanel.current!, skillsPanel: skillsPanel.current!, contactPanel: contactPanel.current!, contactAnchor: contactAnchor.current!, frame: frame.current!, home: homeSlot.current!,
           mascotElement: stage.current!.querySelector<HTMLElement>('.mascot')!, mascot: mascot.current!, reduced: () => reducedRef.current,
           onStart(scene) {
+            reactions.current?.cancel()
             if (activeRef.current === 'journey' && scene === 'projects') projectsApi.current?.showMain()
             setBloubInNav(scene !== 'contact' && !(scene === 'hero' && activeRef.current === 'contact'))
             activeRef.current = scene; setActive(scene); setTransitioning(true)
@@ -116,6 +120,7 @@ export function SceneManager() {
           },
         })
         animation.current = createIntroTimeline({ stage: stage.current!, hero: hero.current!, intro: intro.current!, greeting: greeting.current!, frame: frame.current!, nav: nav.current!, mascot: mascot.current!, reduced: reducedRef.current, onComplete: complete })
+        reactions.current = createMascotReactions({ mascot: mascot.current!, reduced: () => reducedRef.current, canReact: () => !sceneMotion.current?.busy && !projectsBusy.current })
         if (replay > 0 && !reducedRef.current) {
           try { background.current?.appendTo(animation.current.timeline, 'intro', SCENE_DURATION) } catch { /* Preserve the existing introduction if decoration fails. */ }
         }
@@ -160,6 +165,8 @@ export function SceneManager() {
       sceneMotion.current = null
       animation.current?.dispose()
       animation.current = null
+      reactions.current?.dispose()
+      reactions.current = null
       ctx.revert()
       document.body.style.overflow = originalOverflow
     }
@@ -198,6 +205,7 @@ export function SceneManager() {
     else { activeRef.current = 'intro'; setBloubInNav(false); setActive('intro'); setReplay(v => v + 1) }
   }
 
+  const react = useCallback((reaction: MascotReaction) => { reactions.current?.dispatch(reaction) }, [])
   const externalProjectData = externalProject ? projectById.get(externalProject) : undefined
 
   return <>
@@ -205,14 +213,14 @@ export function SceneManager() {
     <main className="stage" ref={stage} data-scene={active} data-transitioning={transitioning}>
       <MorphingBackground ref={background} reduced={preferences.reduced} />
       <Introduction introRef={intro} greetingRef={greeting} skip={skip} active={active === 'intro'} />
-      <Bloub ref={mascot} />
+      <Bloub ref={mascot} interactive={!transitioning && !bloubInNav && active !== 'intro'} onReact={react} />
       <div className="scene-panel hero-panel" ref={heroPanel} data-scene-scroll="" aria-hidden={active !== 'hero' || transitioning} inert={active !== 'hero' || transitioning}>
-        <Hero heroRef={hero} frameRef={frame} active={active === 'hero' && !transitioning} announce={setNotice} showProjects={() => goTo('projects')} showContact={() => goTo('contact')} />
+        <Hero heroRef={hero} frameRef={frame} active={active === 'hero' && !transitioning} announce={setNotice} showProjects={() => goTo('projects')} showContact={() => goTo('contact')} onReact={react} />
       </div>
       <ProjectsScene sceneRef={projectsPanel} apiRef={projectsApi} active={active === 'projects' && !transitioning} reduced={preferences.reduced} onViewChange={viewChanged} onBusyChange={galleryBusy} home={() => goTo('hero')} journey={() => goTo('journey')} />
       <JourneyScene sceneRef={journeyPanel} active={active === 'journey' && !transitioning} visible={active === 'journey'} reduced={preferences.reduced} projects={() => goTo('projects')} skills={() => goTo('skills')} openProject={openProjectFromScene} />
       <SkillsScene sceneRef={skillsPanel} active={active === 'skills' && !transitioning} visible={active === 'skills'} reduced={preferences.reduced} journey={() => goTo('journey')} contact={() => goTo('contact')} openProject={openSkillProject} />
-      <ContactScene sceneRef={contactPanel} anchorRef={contactAnchor} active={active === 'contact' && !transitioning} visible={active === 'contact'} reduced={preferences.reduced} home={() => goTo('hero')} skills={() => goTo('skills')} />
+      <ContactScene sceneRef={contactPanel} anchorRef={contactAnchor} active={active === 'contact' && !transitioning} visible={active === 'contact'} reduced={preferences.reduced} home={() => goTo('hero')} skills={() => goTo('skills')} onReact={react} />
       {externalProjectData && <ProjectOverlay project={externalProjectData} source={null} reduced={preferences.reduced} onClose={() => setExternalProject(null)} />}
     </main>
     <FloatingNavigation navRef={nav} homeRef={homeSlot} active={active} busy={transitioning} bloubInNav={bloubInNav} {...preferences} navigate={navigate} />

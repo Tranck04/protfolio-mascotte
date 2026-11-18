@@ -1,8 +1,10 @@
-import { ArrowDownRight, ArrowUpRight, ArrowDown } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ArrowDown, Download } from 'lucide-react'
 import type { RefObject } from 'react'
 import { Portrait } from './Portrait'
+import { resumeUrl } from '../config/resume'
+import type { MascotReaction } from '../mascot/reactions'
 
-export function Hero({ heroRef, frameRef, active, announce, showProjects, showContact }: { heroRef: RefObject<HTMLElement | null>; frameRef: RefObject<HTMLDivElement | null>; active: boolean; announce: (text: string) => void; showProjects: () => void; showContact: () => void }) {
+export function Hero({ heroRef, frameRef, active, announce, showProjects, showContact, onReact }: { heroRef: RefObject<HTMLElement | null>; frameRef: RefObject<HTMLDivElement | null>; active: boolean; announce: (text: string) => void; showProjects: () => void; showContact: () => void; onReact?: (reaction: MascotReaction) => void }) {
   return <section ref={heroRef} id="hero" className="hero" aria-labelledby="hero-title" inert={!active} aria-hidden={!active}>
     <div className="hero-top"><span className="eyebrow"><span className="tiny-dot" /> PORTFOLIO </span><span className="edition">Casablanca - Maroc</span></div>
     <div className="hero-grid" data-scene-scroll="">
@@ -13,7 +15,8 @@ export function Hero({ heroRef, frameRef, active, announce, showProjects, showCo
         <p className="hero-description">Master 2 en génie logiciel,<br className="desktop-break" /> Je conçois des logiciels complèts, de l’architecture au déploiement,<br className="desktop-break" /> pour des produits comme pour des clients.</p>
         <div className="hero-actions">
           <button className="button button-primary" onClick={showProjects}>Mes projets <ArrowUpRight size={18} /></button>
-          <button className="button button-secondary" onClick={showContact}>Travailler avec moi <ArrowUpRight size={18} /></button>
+          <a className="button button-secondary" href={resumeUrl} download="Tracy Franck Resume Fr.pdf" onClick={() => onReact?.('cv-download')}>Télécharger mon CV <Download size={18} /></a>
+          <button className="button button-quiet" onClick={showContact}>Travailler avec moi <ArrowUpRight size={18} /></button>
         </div>
       </div>
       <Portrait frameRef={frameRef} announce={announce} />

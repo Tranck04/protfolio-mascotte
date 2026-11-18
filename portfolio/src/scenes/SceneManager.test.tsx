@@ -49,7 +49,7 @@ it('keeps one Bloub through StrictMode, skipping, themes and motion changes', as
   await act(() => navigation.querySelector<HTMLButtonElement>('[aria-label="Réduire les animations"]')!.click())
   expect(document.documentElement.dataset.motion).toBe('reduced')
   expect(container.querySelector('.mascot')).toBe(bloub)
-  await act(() => container.querySelector<HTMLButtonElement>('#hero .button-secondary')!.click())
+  await act(() => container.querySelector<HTMLButtonElement>('#hero .button-quiet')!.click())
   expect(container.querySelector('main')!.dataset.scene).toBe('contact')
   expect(container.querySelector('.contact-email')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com/)
 })

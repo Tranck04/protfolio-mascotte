@@ -3,6 +3,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ContactScene } from './ContactScene'
 import { contactConfig } from '../config/contact'
+import type { MascotReaction } from '../mascot/reactions'
+import { resumeUrl } from '../config/resume'
 
 let root: Root, host: HTMLDivElement
 const home = vi.fn(), skills = vi.fn()
@@ -12,13 +14,13 @@ beforeEach(() => {
   home.mockClear(); skills.mockClear()
 })
 afterEach(async () => { await act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
-async function render(config = contactConfig, active = true) {
-  await act(() => root.render(<StrictMode><ContactScene sceneRef={() => {}} anchorRef={() => {}} active={active} visible={active} reduced home={home} skills={skills} config={config} /></StrictMode>))
+async function render(config = contactConfig, active = true, onReact?: (reaction: MascotReaction) => void) {
+  await act(() => root.render(<StrictMode><ContactScene sceneRef={() => {}} anchorRef={() => {}} active={active} visible={active} reduced home={home} skills={skills} config={config} onReact={onReact} /></StrictMode>))
 }
 const copy = () => host.querySelector<HTMLButtonElement>('.contact-copy')!
 const status = () => host.querySelector('[role="status"]')!.textContent
 
-it('renders the centered contact order, real mailto and only GitHub and LinkedIn, without a form or duplicate mascot', async () => {
+it('renders the centered contact order, real mailto, GitHub, LinkedIn and the CV, without a form or duplicate mascot', async () => {
   await render()
   expect(host.querySelector('h2')!.textContent).toBe('Me contacter.')
   expect(host.querySelector('h2 em')!.textContent).toBe('contacter.')
@@ -27,9 +29,10 @@ it('renders the centered contact order, real mailto and only GitHub and LinkedIn
   expect(host.querySelector('form, input, textarea, .contact-letter, .contact-bubble, .mascot, svg[data-body]')).toBeNull()
   expect([...host.querySelector('.contact-content')!.children].map(child => child.className)).toEqual(['contact-heading', 'contact-mascot-anchor', 'contact-actions', 'contact-links'])
   expect(host.querySelector('.contact-email')!.getAttribute('href')).toMatch(/^mailto:tfmukendi@gmail\.com\?subject=/)
-  expect(host.querySelectorAll('.contact-links a')).toHaveLength(2)
+  expect(host.querySelectorAll('.contact-links a')).toHaveLength(3)
   expect(host.querySelector('[aria-label="GitHub — nouvel onglet"]')!.getAttribute('href')).toBe(contactConfig.github)
   expect(host.querySelector('[aria-label="LinkedIn — nouvel onglet"]')!.getAttribute('href')).toBe(contactConfig.linkedin)
+  expect(host.querySelector('[aria-label="Consulter mon CV — nouvel onglet"]')!.getAttribute('href')).toBe(resumeUrl)
   expect(status()).toBe('')
 })
 it('confirms copying only after Clipboard resolves and prevents duplicate pending requests', async () => {
@@ -89,4 +92,28 @@ it('retains copyright and explicit scene navigation', async () => {
   expect(host.querySelector('footer')!.textContent).toContain(`© ${new Date().getFullYear()} ${contactConfig.ownerName}`)
   await act(() => host.querySelector<HTMLButtonElement>('footer button')!.click()); expect(skills).toHaveBeenCalledTimes(1)
   await act(() => host.querySelector<HTMLButtonElement>('footer button:last-child')!.click()); expect(home).toHaveBeenCalledTimes(1)
+})
+it('asks Bloub to react only after a real clipboard success', async () => {
+  let resolve!: () => void
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn(() => new Promise<void>(done => { resolve = done })) } })
+  const onReact = vi.fn<(reaction: MascotReaction) => void>()
+  await render(contactConfig, true, onReact)
+  await act(() => copy().click())
+  expect(onReact).not.toHaveBeenCalled()
+  await act(async () => { resolve(); await Promise.resolve() })
+  expect(onReact).toHaveBeenCalledWith('email-copied')
+})
+it('stays silent when the clipboard fails', async () => {
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('Denied')) } })
+  const onReact = vi.fn<(reaction: MascotReaction) => void>()
+  await render(contactConfig, true, onReact)
+  await act(() => copy().click())
+  await act(async () => { await Promise.resolve() })
+  expect(onReact).not.toHaveBeenCalled()
+})
+it('asks Bloub to greet when the email link is activated', async () => {
+  const onReact = vi.fn<(reaction: MascotReaction) => void>()
+  await render(contactConfig, true, onReact)
+  await act(() => host.querySelector<HTMLAnchorElement>('.contact-email')!.click())
+  expect(onReact).toHaveBeenCalledWith('email-opened')
 })
