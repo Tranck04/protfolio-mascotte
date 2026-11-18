@@ -164,11 +164,7 @@ export function ProjectOverlay({ project, source, reduced, onClose }: {
     <section ref={panelRef} className="project-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="project-detail-title" tabIndex={-1}>
       <button ref={closeRef} type="button" className="overlay-close" aria-label="Fermer le projet" onClick={close}><X size={18} strokeWidth={1.7} /></button>
       <div className="overlay-scroll">
-        <ProjectDetail project={project} />
-        {!!project.captures?.length && <section className="overlay-captures" aria-label="Captures supplémentaires">
-          <h3>Captures supplémentaires</h3>
-          <div className="overlay-capture-grid">{project.captures.map((capture, index) => <img key={capture} src={capture} alt={`Capture ${index + 1} de ${project.title}`} loading="lazy" />)}</div>
-        </section>}
+        <ProjectDetail project={project} reduced={reduced} />
       </div>
     </section>
   </div>
